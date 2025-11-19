@@ -53,7 +53,7 @@ struct SignInView: View {
                         .resizable()
                         .renderingMode(.original)
                         .scaledToFit()
-                        .frame(maxWidth: 260, maxHeight: 150)
+                        .frame(width: 320, height: 180)
                         .accessibilityLabel("timbr logo")
                 }
                 .frame(maxWidth: .infinity)
