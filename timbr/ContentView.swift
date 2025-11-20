@@ -26,28 +26,41 @@ struct WelcomeView: View {
     
     var body: some View {
         ZStack {
-            // Background - house image if available
-            if let houseImage = UIImage(named: "houseBackground") {
-                GeometryReader { geometry in
-                    Image(uiImage: houseImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
+            // Solid dark background for entire screen
+            Color.timbrDark
+                .ignoresSafeArea()
+            
+            // House image - only visible in top portion with gradient fade
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    ZStack {
+                        Image("houseBackground")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width, height: geometry.size.height * 0.35)
+                            .clipped()
+                        
+                        // Gradient overlay that fades the house image out
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.timbrDark.opacity(0.0),
+                                Color.timbrDark.opacity(0.3),
+                                Color.timbrDark.opacity(0.7),
+                                Color.timbrDark.opacity(1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: geometry.size.height * 0.35)
+                    }
+                    
+                    // Solid dark background for rest of screen
+                    Color.timbrDark
+                        .frame(height: geometry.size.height * 0.65)
+                    
+                    Spacer()
                 }
             }
-            
-            // Background gradient using #173c40 as base - overlays lower half
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.timbrDark.opacity(0.0),
-                    Color.timbrDark.opacity(0.3),
-                    Color.timbrDark.opacity(1.0),
-                    Color.timbrDark.opacity(0.9)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
             .ignoresSafeArea()
             
             VStack(spacing: 32) {
@@ -59,16 +72,10 @@ struct WelcomeView: View {
                         .font(.system(size: 32, weight: .semibold))
                         .foregroundColor(.white)
                     
-                    VStack(spacing: 8) {
-                        Image("TimbrLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 84, height: 84)
-                        
-                        Text("timbr")
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
+                    Image("TimbrLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
                 }
                 
                 // Card with description & feature bullets
