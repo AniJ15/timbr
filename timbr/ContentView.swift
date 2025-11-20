@@ -6,14 +6,18 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     var body: some View {
-        SignInView()
+        WelcomeView()
     }
 }
 
-struct SignInView: View {
+struct WelcomeView: View {
+    @StateObject private var authManager = AuthManager()
+    @State private var isSigningIn = false
+    
     private let features = [
         "Personalized swipe deck",
         "Quick intent setup",
@@ -22,177 +26,167 @@ struct SignInView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(hex: 0x011A1E), Color(hex: 0x05343C)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                .ignoresSafeArea()
-            
-            Circle()
-                .fill(Color(hex: 0x38D2C8, alpha: 0.25))
-                .frame(width: 420, height: 420)
-                .blur(radius: 180)
-                .offset(x: 120, y: -250)
-                .ignoresSafeArea()
-            
-            Circle()
-                .fill(Color.white.opacity(0.08))
-                .frame(width: 320, height: 320)
-                .blur(radius: 140)
-                .offset(x: -160, y: 220)
-                .ignoresSafeArea()
-            
-            VStack(alignment: .leading, spacing: 28) {
-                Spacer(minLength: 32)
-                
-                VStack(spacing: 12) {
-                    Text("Welcome to")
-                        .font(.system(.largeTitle, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
-                    
-                    Image("TimbrLogo")
+            // Background - house image if available
+            if let houseImage = UIImage(named: "houseBackground") {
+                GeometryReader { geometry in
+                    Image(uiImage: houseImage)
                         .resizable()
-                        .renderingMode(.original)
-                        .scaledToFit()
-                        .frame(width: 320, height: 180)
-                        .accessibilityLabel("timbr logo")
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 4)
+            }
+            
+            // Background gradient using #173c40 as base - overlays lower half
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.timbrDark.opacity(0.0),
+                    Color.timbrDark.opacity(0.3),
+                    Color.timbrDark.opacity(1.0),
+                    Color.timbrDark.opacity(0.9)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 32) {
+                Spacer().frame(height: 40)
                 
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Swipe into homes, investments, and inspirations tailored to how you live and what you’re searching for.")
-                                .font(.callout)
-                                .foregroundStyle(.white.opacity(0.85))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                // Title + Logo
+                VStack(spacing: 16) {
+                    Text("Welcome to")
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    VStack(spacing: 8) {
+                        Image("TimbrLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 84, height: 84)
                         
-                        Divider()
-                            .overlay(Color.white.opacity(0.15))
-                        
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(features, id: \.self) { feature in
-                                FeaturePill(text: feature)
-                            }
-                        }
+                        Text("timbr")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundColor(.white)
                     }
-                    .foregroundStyle(.white)
                 }
+                
+                // Card with description & feature bullets
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Swipe into homes, investments, and inspirations tailored to how you live and what you're searching for.")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(.white.opacity(0.9))
+                    
+                    Divider().background(Color.white.opacity(0.15))
+                    
+                    VStack(spacing: 12) {
+                        FeatureRow(text: "Personalized swipe deck")
+                        FeatureRow(text: "Quick intent setup")
+                        FeatureRow(text: "Matches & archives synced")
+                    }
+                }
+                .padding(20)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(24)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+                .padding(.horizontal, 24)
                 
                 Spacer()
                 
+                // Google button
                 VStack(spacing: 16) {
-                    Button(action: signInWithGoogle) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "g.circle.fill")
-                                .font(.title3)
-                            Text("Continue with Google")
-                                .font(.headline)
+                    Button(action: {
+                        Task {
+                            isSigningIn = true
+                            await authManager.signInWithGoogle()
+                            isSigningIn = false
                         }
+                    }) {
+                        HStack(spacing: 10) {
+                            if isSigningIn {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                            } else {
+                                Image(systemName: "g.circle.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                            }
+                            Text(isSigningIn ? "Signing in..." : "Continue with Google")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.white)
+                        .cornerRadius(30)
                     }
-                    .buttonStyle(SignInButtonStyle())
+                    .disabled(isSigningIn)
+                    .padding(.horizontal, 24)
+                    
+                    if let errorMessage = authManager.errorMessage {
+                        Text(errorMessage)
+                            .font(.system(size: 12))
+                            .foregroundColor(.red.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
                     
                     Text("We only use your Google account to secure sign-in and sync your swipes.")
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 40)
+                        .padding(.bottom, 32)
                 }
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 32)
         }
     }
-    
-    private func signInWithGoogle() {
-        // Placeholder action – integrate Google Sign-In SDK here.
-        print("Google Sign-In tapped")
-    }
 }
 
-private struct SignInButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Color(hex: 0x05343C))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(.white.opacity(0.25))
-            )
-            .opacity(configuration.isPressed ? 0.85 : 1)
-    }
-}
-
-private struct GlassCard<Content: View>: View {
-    let content: () -> Content
-    
-    init(@ViewBuilder content: @escaping () -> Content) {
-        self.content = content
-    }
-    
-    var body: some View {
-        content()
-            .padding(22)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.white.opacity(0.08))
-                    .background(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .stroke(.white.opacity(0.12))
-                    )
-            )
-            .shadow(color: .black.opacity(0.35), radius: 30, x: 0, y: 24)
-    }
-}
-
-private struct FeaturePill: View {
+// MARK: - Feature Row
+struct FeatureRow: View {
     let text: String
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.seal.fill")
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(.white.opacity(0.95), Color(hex: 0x38D2C8))
-                .font(.subheadline)
-                .padding(8)
-                .background(
-                    Circle()
-                        .fill(.white.opacity(0.08))
-                )
+        HStack(alignment: .center, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 28, height: 28)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.timbrAccent)
+            }
             
             Text(text)
-                .font(.subheadline.weight(.medium))
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.white)
             
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.white.opacity(0.07))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(.white.opacity(0.1))
-                )
-        )
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(Color.white.opacity(0.03))
+        .cornerRadius(16)
     }
 }
 
-private extension Color {
-    init(hex: UInt, alpha: Double = 1.0) {
-        let red = Double((hex >> 16) & 0xFF) / 255.0
-        let green = Double((hex >> 8) & 0xFF) / 255.0
-        let blue = Double(hex & 0xFF) / 255.0
-        self.init(.sRGB, red: red, green: green, blue: blue, opacity: alpha)
-    }
+// MARK: - Colors
+extension Color {
+    /// #173c40
+    static let timbrDark = Color(red: 0x17 / 255.0,
+                                 green: 0x3c / 255.0,
+                                 blue: 0x40 / 255.0)
+    
+    static let timbrAccent = Color(red: 0x6F / 255.0,
+                                   green: 0xE7 / 255.0,
+                                   blue: 0xD2 / 255.0)
 }
 
 #Preview {
-    ContentView()
+    WelcomeView()
         .previewDevice("iPhone 15 Pro")
 }
