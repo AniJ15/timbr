@@ -16,7 +16,7 @@ struct timbrApp: App {
     
     var body: some Scene {
         WindowGroup {
-            WelcomeView()
+            ContentView()
         }
     }
 }

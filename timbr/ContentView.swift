@@ -9,13 +9,36 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    @StateObject private var authManager = AuthManager()
+    @StateObject private var onboardingManager = OnboardingManager()
+    @State private var showOnboarding = false
+    
     var body: some View {
-        WelcomeView()
+        NavigationStack {
+            if authManager.isSignedIn && !showOnboarding {
+                // Check if user has completed onboarding
+                OnboardingCheckView(
+                    authManager: authManager,
+                    onboardingManager: onboardingManager,
+                    showOnboarding: $showOnboarding
+                )
+            } else if showOnboarding {
+                OnboardingView()
+                    .onAppear {
+                        Task {
+                            await onboardingManager.loadPreferences()
+                        }
+                    }
+            } else {
+                WelcomeView(authManager: authManager, showOnboarding: $showOnboarding)
+            }
+        }
     }
 }
 
 struct WelcomeView: View {
-    @StateObject private var authManager = AuthManager()
+    @ObservedObject var authManager: AuthManager
+    @Binding var showOnboarding: Bool
     @State private var isSigningIn = false
     
     private let features = [
@@ -110,6 +133,14 @@ struct WelcomeView: View {
                             isSigningIn = true
                             await authManager.signInWithGoogle()
                             isSigningIn = false
+                            if authManager.isSignedIn {
+                                // Check if user needs onboarding
+                                let manager = OnboardingManager()
+                                await manager.loadPreferences()
+                                if !manager.preferences.hasCompletedOnboarding {
+                                    showOnboarding = true
+                                }
+                            }
                         }
                     }) {
                         HStack(spacing: 10) {
@@ -194,6 +225,9 @@ extension Color {
 }
 
 #Preview {
-    WelcomeView()
-        .previewDevice("iPhone 15 Pro")
+    WelcomeView(
+        authManager: AuthManager(),
+        showOnboarding: .constant(false)
+    )
+    .previewDevice("iPhone 15 Pro")
 }
