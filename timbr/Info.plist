@@ -15,5 +15,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Timbr needs your location to show you nearby properties and personalize your experience.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Timbr needs your location to show you nearby properties and personalize your experience.</string>
 </dict>
 </plist>
