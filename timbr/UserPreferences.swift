@@ -32,6 +32,7 @@ enum PropertyType: String, Codable, CaseIterable {
     case land = "land"
     case townhouse = "townhouse"
     case commercial = "commercial"
+    case browsing = "browsing"
     
     var displayName: String {
         switch self {
@@ -49,6 +50,8 @@ enum PropertyType: String, Codable, CaseIterable {
             return "Townhouses"
         case .commercial:
             return "Commercial"
+        case .browsing:
+            return "Just browsing"
         }
     }
 }

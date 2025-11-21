@@ -65,10 +65,38 @@ struct OnboardingStep3View: View {
             // Price range options
             ScrollView {
                 VStack(spacing: 16) {
+                    // No set budget option
+                    let noBudgetSelected = manager.preferences.minPrice == nil && manager.preferences.maxPrice == nil
+                    Button(action: {
+                        manager.preferences.minPrice = nil
+                        manager.preferences.maxPrice = nil
+                    }) {
+                        HStack {
+                            Text("No set budget")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            if noBudgetSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.timbrAccent)
+                            }
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(noBudgetSelected ? Color.white.opacity(0.15) : Color.white.opacity(0.05))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(noBudgetSelected ? Color.timbrAccent : Color.clear, lineWidth: 2)
+                                )
+                        )
+                    }
+                    
                     ForEach(priceRanges.indices, id: \.self) { index in
                         let range = priceRanges[index]
                         let isSelected = manager.preferences.minPrice == range.min && 
-                                        manager.preferences.maxPrice == range.max
+                                        manager.preferences.maxPrice == (range.max == Int.max ? nil : range.max)
                         
                         Button(action: {
                             manager.preferences.minPrice = range.min

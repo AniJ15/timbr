@@ -12,17 +12,11 @@ struct ContentView: View {
     @StateObject private var authManager = AuthManager()
     @StateObject private var onboardingManager = OnboardingManager()
     @State private var showOnboarding = false
+    @State private var hasCheckedOnboarding = false
     
     var body: some View {
         NavigationStack {
-            if authManager.isSignedIn && !showOnboarding {
-                // Check if user has completed onboarding
-                OnboardingCheckView(
-                    authManager: authManager,
-                    onboardingManager: onboardingManager,
-                    showOnboarding: $showOnboarding
-                )
-            } else if showOnboarding {
+            if showOnboarding {
                 OnboardingView()
                     .onAppear {
                         Task {
@@ -30,7 +24,11 @@ struct ContentView: View {
                         }
                     }
             } else {
-                WelcomeView(authManager: authManager, showOnboarding: $showOnboarding)
+                WelcomeView(
+                    authManager: authManager,
+                    showOnboarding: $showOnboarding,
+                    onboardingManager: onboardingManager
+                )
             }
         }
     }
@@ -39,6 +37,7 @@ struct ContentView: View {
 struct WelcomeView: View {
     @ObservedObject var authManager: AuthManager
     @Binding var showOnboarding: Bool
+    @ObservedObject var onboardingManager: OnboardingManager
     @State private var isSigningIn = false
     
     private let features = [
@@ -133,13 +132,29 @@ struct WelcomeView: View {
                             isSigningIn = true
                             await authManager.signInWithGoogle()
                             isSigningIn = false
+                            
+                            // After successful sign-in, navigate to onboarding
                             if authManager.isSignedIn {
-                                // Check if user needs onboarding
-                                let manager = OnboardingManager()
-                                await manager.loadPreferences()
-                                if !manager.preferences.hasCompletedOnboarding {
+                                print("🔐 User signed in, checking onboarding status...")
+                                
+                                // Try to load preferences, but navigate to onboarding regardless
+                                // (Firestore might not be enabled yet, but we still want onboarding)
+                                await onboardingManager.loadPreferences()
+                                
+                                print("📋 Onboarding status - hasCompletedOnboarding: \(onboardingManager.preferences.hasCompletedOnboarding)")
+                                
+                                // Always show onboarding if not completed
+                                // If Firestore isn't enabled, hasCompletedOnboarding will be false by default
+                                if !onboardingManager.preferences.hasCompletedOnboarding {
+                                    print("➡️ Navigating to onboarding...")
                                     showOnboarding = true
+                                } else {
+                                    // User has completed onboarding - show main app
+                                    // TODO: Navigate to main swipe interface
+                                    print("✅ User has completed onboarding - ready for main app")
                                 }
+                            } else {
+                                print("❌ Sign-in failed")
                             }
                         }
                     }) {
@@ -227,7 +242,8 @@ extension Color {
 #Preview {
     WelcomeView(
         authManager: AuthManager(),
-        showOnboarding: .constant(false)
+        showOnboarding: .constant(false),
+        onboardingManager: OnboardingManager()
     )
     .previewDevice("iPhone 15 Pro")
 }

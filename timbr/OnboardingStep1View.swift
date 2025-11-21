@@ -21,7 +21,7 @@ struct OnboardingStep1View: View {
             Spacer()
             
             VStack(spacing: 24) {
-                Text("Why are you here?")
+                Text("What brings you to Timbr?")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
@@ -41,10 +41,12 @@ struct OnboardingStep1View: View {
                             manager.nextStep()
                         }
                     }) {
-                        HStack {
+                        HStack(alignment: .center) {
                             Text(intent.displayName)
                                 .font(.system(size: 17, weight: .medium))
                                 .foregroundColor(.white)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 14, weight: .semibold))

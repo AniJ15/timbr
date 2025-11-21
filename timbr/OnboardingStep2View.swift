@@ -35,8 +35,6 @@ struct OnboardingStep2View: View {
             }
             .padding(.horizontal, 24)
             
-            Spacer()
-            
             VStack(spacing: 24) {
                 Text("What are you looking for?")
                     .font(.system(size: 32, weight: .bold))
@@ -49,6 +47,7 @@ struct OnboardingStep2View: View {
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
+            .padding(.top, 8)
             
             // Property type chips
             ScrollView {
@@ -144,6 +143,8 @@ struct PropertyTypeChip: View {
             return "building.2.crop.circle.fill"
         case .commercial:
             return "briefcase.fill"
+        case .browsing:
+            return "eye.fill"
         }
     }
 }

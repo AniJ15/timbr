@@ -61,6 +61,8 @@ class OnboardingManager: ObservableObject {
     
     func loadPreferences() async {
         guard let userId = Auth.auth().currentUser?.uid else {
+            print("⚠️ No user ID - defaulting to onboarding")
+            preferences.hasCompletedOnboarding = false
             return
         }
         
@@ -71,12 +73,18 @@ class OnboardingManager: ObservableObject {
             
             if document.exists, let data = document.data() {
                 preferences = try UserPreferences.fromDictionary(data)
-                print("✅ Preferences loaded successfully")
+                print("✅ Preferences loaded successfully - hasCompletedOnboarding: \(preferences.hasCompletedOnboarding)")
+            } else {
+                print("⚠️ No preferences found - defaulting to onboarding")
+                preferences.hasCompletedOnboarding = false
             }
             isLoading = false
         } catch {
             errorMessage = "Failed to load preferences: \(error.localizedDescription)"
             print("❌ Error loading preferences: \(error.localizedDescription)")
+            print("⚠️ Defaulting to onboarding (hasCompletedOnboarding = false)")
+            // If Firestore fails, default to showing onboarding
+            preferences.hasCompletedOnboarding = false
             isLoading = false
         }
     }
