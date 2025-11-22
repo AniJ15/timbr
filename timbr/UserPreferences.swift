@@ -7,20 +7,46 @@
 
 import Foundation
 
-enum UserIntent: String, Codable, CaseIterable {
-    case buying = "buying"
-    case investing = "investing"
-    case browsing = "browsing"
+enum UserIntent: String, Codable, CaseIterable, Hashable {
+    case buyHome = "buyHome"
+    case rentHome = "rentHome"
+    case invest = "invest"
+    case designInspiration = "designInspiration"
+    case sellSoon = "sellSoon"
     
-    var displayName: String {
+    var title: String {
         switch self {
-        case .buying:
-            return "Buying a home"
-        case .investing:
-            return "Exploring commercial real estate / investment opportunities"
-        case .browsing:
-            return "Browsing casually"
+        case .buyHome:
+            return "Looking for a home to buy"
+        case .rentHome:
+            return "Searching for a place to rent"
+        case .invest:
+            return "Exploring investment properties"
+        case .designInspiration:
+            return "Looking for design inspiration"
+        case .sellSoon:
+            return "Planning to sell soon"
         }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .buyHome:
+            return "house.fill"
+        case .rentHome:
+            return "bed.double.fill"
+        case .invest:
+            return "dollarsign.circle.fill"
+        case .designInspiration:
+            return "paintpalette.fill"
+        case .sellSoon:
+            return "arrow.left.arrow.right"
+        }
+    }
+    
+    // Legacy support for old displayName
+    var displayName: String {
+        return title
     }
 }
 
@@ -57,7 +83,12 @@ enum PropertyType: String, Codable, CaseIterable {
 }
 
 struct UserPreferences: Codable {
-    var intent: UserIntent?
+    var intents: [UserIntent] = []
+    // Legacy support - keep for backward compatibility
+    var intent: UserIntent? {
+        get { intents.first }
+        set { if let newValue = newValue { intents = [newValue] } else { intents = [] } }
+    }
     var propertyTypes: [PropertyType] = []
     var minPrice: Int?
     var maxPrice: Int?

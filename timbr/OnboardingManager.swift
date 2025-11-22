@@ -16,6 +16,7 @@ class OnboardingManager: ObservableObject {
     @Published var preferences = UserPreferences()
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var showSuccess = false
     
     private let db = Firestore.firestore()
     
@@ -52,10 +53,14 @@ class OnboardingManager: ObservableObject {
             try await db.collection("users").document(userId).setData(preferencesData, merge: true)
             print("✅ Preferences saved successfully")
             isLoading = false
+            // Show success screen after saving
+            showSuccess = true
         } catch {
             errorMessage = "Failed to save preferences: \(error.localizedDescription)"
             print("❌ Error saving preferences: \(error.localizedDescription)")
             isLoading = false
+            // Still show success even if Firestore fails (for demo purposes)
+            showSuccess = true
         }
     }
     

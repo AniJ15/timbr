@@ -15,17 +15,21 @@ struct OnboardingView: View {
         ZStack {
             Color.timbrDark.ignoresSafeArea()
             
-            switch manager.currentStep {
-            case 1:
-                OnboardingStep1View(manager: manager)
-            case 2:
-                OnboardingStep2View(manager: manager)
-            case 3:
-                OnboardingStep3View(manager: manager)
-            case 4:
-                OnboardingStep4View(manager: manager)
-            default:
-                OnboardingStep1View(manager: manager)
+            if manager.showSuccess {
+                OnboardingSuccessView()
+            } else {
+                switch manager.currentStep {
+                case 1:
+                    OnboardingStep1View(manager: manager)
+                case 2:
+                    OnboardingStep2View(manager: manager)
+                case 3:
+                    OnboardingStep3View(manager: manager)
+                case 4:
+                    OnboardingStep4View(manager: manager)
+                default:
+                    OnboardingStep1View(manager: manager)
+                }
             }
         }
     }

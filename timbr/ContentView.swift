@@ -227,17 +227,6 @@ struct FeatureRow: View {
     }
 }
 
-// MARK: - Colors
-extension Color {
-    /// #173c40
-    static let timbrDark = Color(red: 0x17 / 255.0,
-                                 green: 0x3c / 255.0,
-                                 blue: 0x40 / 255.0)
-    
-    static let timbrAccent = Color(red: 0x6F / 255.0,
-                                   green: 0xE7 / 255.0,
-                                   blue: 0xD2 / 255.0)
-}
 
 #Preview {
     WelcomeView(
