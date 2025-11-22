@@ -76,5 +76,30 @@ class AuthManager: ObservableObject {
             self.errorMessage = error.localizedDescription
         }
     }
+    
+    func clearAllAccounts() {
+        // Sign out from Firebase
+        do {
+            try Auth.auth().signOut()
+        } catch {
+            print("Error signing out from Firebase: \(error)")
+        }
+        
+        // Sign out from Google Sign-In
+        GIDSignIn.sharedInstance.signOut()
+        
+        // Disconnect (removes account from device)
+        GIDSignIn.sharedInstance.disconnect { error in
+            if let error = error {
+                print("Error disconnecting: \(error)")
+            } else {
+                print("✅ All Google accounts cleared")
+            }
+        }
+        
+        self.isSignedIn = false
+        self.user = nil
+        self.errorMessage = nil
+    }
 }
 
