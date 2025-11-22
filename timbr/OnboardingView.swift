@@ -10,14 +10,22 @@ import SwiftUI
 struct OnboardingView: View {
     @StateObject private var manager = OnboardingManager()
     @Environment(\.dismiss) var dismiss
+    @State private var showSwipeView = false
     
     var body: some View {
         ZStack {
-            Color.timbrDark.ignoresSafeArea()
-            
-            if manager.showSuccess {
-                OnboardingSuccessView()
+            if showSwipeView {
+                SwipeView(onboardingManager: manager)
+                    .transition(.opacity)
+            } else if manager.showSuccess {
+                OnboardingSuccessView(onShowSwipe: {
+                    withAnimation {
+                        showSwipeView = true
+                    }
+                })
             } else {
+                Color.timbrDark.ignoresSafeArea()
+                
                 switch manager.currentStep {
                 case 1:
                     OnboardingStep1View(manager: manager)

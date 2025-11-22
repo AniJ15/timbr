@@ -11,16 +11,10 @@ struct OnboardingStep3View: View {
     @ObservedObject var manager: OnboardingManager
     @State private var minPrice: Double = 0
     @State private var maxPrice: Double = 2000000
+    @State private var noBudget: Bool = false
     
-    private let priceRanges: [(min: Int, max: Int, label: String)] = [
-        (0, 250000, "Under $250K"),
-        (250000, 500000, "$250K - $500K"),
-        (500000, 750000, "$500K - $750K"),
-        (750000, 1000000, "$750K - $1M"),
-        (1000000, 2000000, "$1M - $2M"),
-        (2000000, 5000000, "$2M - $5M"),
-        (5000000, Int.max, "$5M+")
-    ]
+    private let minRange: Double = 0
+    private let maxRange: Double = 5000000
     
     var body: some View {
         VStack(spacing: 32) {
@@ -55,77 +49,140 @@ struct OnboardingStep3View: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
-                Text("Select your price range")
+                Text("Set your price range")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
             
-            // Price range options
-            ScrollView {
-                VStack(spacing: 16) {
-                    // No set budget option
-                    let noBudgetSelected = manager.preferences.minPrice == nil && manager.preferences.maxPrice == nil
-                    Button(action: {
+            // Price sliders
+            VStack(spacing: 32) {
+                // No set budget option
+                Button(action: {
+                    noBudget.toggle()
+                    if noBudget {
+                        // Move sliders to full range
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            minPrice = minRange
+                            maxPrice = maxRange
+                        }
                         manager.preferences.minPrice = nil
                         manager.preferences.maxPrice = nil
-                    }) {
-                        HStack {
-                            Text("No set budget")
-                                .font(.system(size: 17, weight: .medium))
-                                .foregroundColor(.white)
-                            Spacer()
-                            if noBudgetSelected {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.timbrAccent)
-                            }
-                        }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(noBudgetSelected ? Color.white.opacity(0.15) : Color.white.opacity(0.05))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(noBudgetSelected ? Color.timbrAccent : Color.clear, lineWidth: 2)
-                                )
-                        )
+                    } else {
+                        // Use current slider values
+                        manager.preferences.minPrice = Int(minPrice)
+                        manager.preferences.maxPrice = Int(maxPrice)
                     }
-                    
-                    ForEach(priceRanges.indices, id: \.self) { index in
-                        let range = priceRanges[index]
-                        let isSelected = manager.preferences.minPrice == range.min && 
-                                        manager.preferences.maxPrice == (range.max == Int.max ? nil : range.max)
-                        
-                        Button(action: {
-                            manager.preferences.minPrice = range.min
-                            manager.preferences.maxPrice = range.max == Int.max ? nil : range.max
-                        }) {
-                            HStack {
-                                Text(range.label)
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundColor(.white)
-                                Spacer()
-                                if isSelected {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(.timbrAccent)
-                                }
-                            }
-                            .padding(20)
-                            .background(
+                }) {
+                    HStack {
+                        Text("No set budget")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundColor(.white)
+                        Spacer()
+                        if noBudget {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.timbrAccent)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(noBudget ? Color.white.opacity(0.15) : Color.white.opacity(0.05))
+                            .overlay(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .fill(isSelected ? Color.white.opacity(0.15) : Color.white.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(isSelected ? Color.timbrAccent : Color.clear, lineWidth: 2)
-                                    )
+                                    .stroke(noBudget ? Color.timbrAccent : Color.clear, lineWidth: 2)
                             )
-                        }
-                    }
+                    )
                 }
                 .padding(.horizontal, 24)
+                
+                // Always show sliders
+                VStack(spacing: 32) {
+                    // Minimum price slider
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Minimum")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                            Spacer()
+                            Text(formatPrice(minPrice))
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        Slider(value: $minPrice, in: minRange...maxRange, step: 10000) {
+                            Text("Min Price")
+                        } minimumValueLabel: {
+                            Text("$0")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.6))
+                        } maximumValueLabel: {
+                            Text("$5M+")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.6))
+                        } onEditingChanged: { editing in
+                            if !editing {
+                                // Ensure min doesn't exceed max
+                                if minPrice > maxPrice {
+                                    minPrice = maxPrice
+                                }
+                                // Only save if "No set budget" is not checked
+                                if !noBudget {
+                                    manager.preferences.minPrice = Int(minPrice)
+                                }
+                            }
+                        }
+                        .tint(.timbrAccent)
+                        .disabled(noBudget)
+                        .opacity(noBudget ? 0.5 : 1.0)
+                        .padding(.horizontal, 24)
+                    }
+                    
+                    // Maximum price slider
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Maximum")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                            Spacer()
+                            Text(formatPrice(maxPrice))
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        Slider(value: $maxPrice, in: minRange...maxRange, step: 10000) {
+                            Text("Max Price")
+                        } minimumValueLabel: {
+                            Text("$0")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.6))
+                        } maximumValueLabel: {
+                            Text("$5M+")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.6))
+                        } onEditingChanged: { editing in
+                            if !editing {
+                                // Ensure max doesn't go below min
+                                if maxPrice < minPrice {
+                                    maxPrice = minPrice
+                                }
+                                // Only save if "No set budget" is not checked
+                                if !noBudget {
+                                    manager.preferences.maxPrice = Int(maxPrice)
+                                }
+                            }
+                        }
+                        .tint(.timbrAccent)
+                        .disabled(noBudget)
+                        .opacity(noBudget ? 0.5 : 1.0)
+                        .padding(.horizontal, 24)
+                    }
+                }
+                .padding(.vertical, 20)
             }
             
             Spacer()
@@ -153,10 +210,34 @@ struct OnboardingStep3View: View {
             // Initialize with existing values if available
             if let min = manager.preferences.minPrice {
                 minPrice = Double(min)
+                noBudget = false
+            } else {
+                noBudget = true
             }
             if let max = manager.preferences.maxPrice {
                 maxPrice = Double(max)
             }
+        }
+    }
+    
+    private func formatPrice(_ price: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.maximumFractionDigits = 0
+        formatter.currencySymbol = "$"
+        
+        let number = NSNumber(value: price)
+        if let formatted = formatter.string(from: number) {
+            return formatted
+        }
+        
+        // Fallback formatting
+        if price >= 1_000_000 {
+            return "$\(Int(price / 1_000_000))M"
+        } else if price >= 1_000 {
+            return "$\(Int(price / 1_000))K"
+        } else {
+            return "$\(Int(price))"
         }
     }
 }

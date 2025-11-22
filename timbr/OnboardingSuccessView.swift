@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct OnboardingSuccessView: View {
+    let onShowSwipe: () -> Void
     @State private var checkmarkScale: CGFloat = 0
     @State private var checkmarkOpacity: Double = 0
     @State private var textOpacity: Double = 0
@@ -62,8 +63,7 @@ struct OnboardingSuccessView: View {
                 
                 // Start Swiping button
                 Button(action: {
-                    // TODO: Navigate to main swipe interface
-                    print("Start Swiping tapped")
+                    onShowSwipe()
                 }) {
                     Text("Start Swiping")
                         .font(.system(size: 17, weight: .semibold))

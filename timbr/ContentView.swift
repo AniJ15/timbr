@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var onboardingManager = OnboardingManager()
     @State private var showOnboarding = false
     @State private var hasCheckedOnboarding = false
+    @State private var hasCheckedProperties = false
     
     var body: some View {
         NavigationStack {
@@ -30,6 +31,30 @@ struct ContentView: View {
                     onboardingManager: onboardingManager
                 )
             }
+        }
+        .task {
+            // Auto-generate mock properties if they don't exist
+            // Wait a bit to ensure Firebase is fully initialized
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
+            
+            if !hasCheckedProperties {
+                await checkAndGenerateMockData()
+                hasCheckedProperties = true
+            }
+        }
+    }
+    
+    private func checkAndGenerateMockData() async {
+        let helper = MockDataHelper.shared
+        
+        // Check if properties already exist
+        let propertiesExist = await helper.checkIfPropertiesExist()
+        
+        if !propertiesExist {
+            print("📦 No properties found. Generating mock data...")
+            await helper.generateMockProperties(count: 50)
+        } else {
+            print("✅ Properties already exist in Firestore")
         }
     }
 }
