@@ -12,9 +12,10 @@ struct SwipeView: View {
     @ObservedObject var onboardingManager: OnboardingManager
     
     @State private var currentIndex = 0
-    @State private var showingDetail = false
     @State private var likedProperties: [String] = []
     @State private var dislikedProperties: [String] = []
+    @State private var isTopCardFlipped = false
+    @State private var isTopCardSwiping = false
     
     var body: some View {
         ZStack {
@@ -37,23 +38,6 @@ struct SwipeView: View {
                     Text("Check back later for new listings")
                         .font(.system(size: 16))
                         .foregroundColor(.white.opacity(0.7))
-                }
-            } else if showingDetail {
-                // Show detail view
-                if let property = currentProperty {
-                    PropertyDetailView(
-                        property: property,
-                        onClose: {
-                            withAnimation {
-                                showingDetail = false
-                            }
-                        },
-                        onSwipe: { direction in
-                            handleSwipe(direction)
-                            showingDetail = false
-                        }
-                    )
-                    .transition(.opacity)
                 }
             } else {
                 // Main swipe deck
@@ -81,18 +65,16 @@ struct SwipeView: View {
                                         handleSwipe(direction)
                                     },
                                     onTap: {
-                                        if index == 0 {
-                                            withAnimation {
-                                                showingDetail = true
-                                            }
-                                        }
-                                    }
+                                        // Flip animation is handled inside SwipeCardView
+                                    },
+                                    isFlipped: index == 0 ? $isTopCardFlipped : .constant(false),
+                                    isSwiping: index == 0 ? $isTopCardSwiping : .constant(false)
                                 )
                                 .frame(width: 340, height: 600)
                                 .scaleEffect(1.0 - CGFloat(index) * 0.05)
                                 .offset(y: CGFloat(index) * 10)
                                 .zIndex(Double(3 - index))
-                                .opacity(index == 0 ? 1.0 : 0.6)
+                                .opacity(index == 0 ? 1.0 : ((isTopCardFlipped || isTopCardSwiping) ? 0.0 : 0.6))
                             }
                         }
                     }
@@ -204,6 +186,7 @@ struct SwipeView: View {
             }
             
             currentIndex += 1
+            isTopCardSwiping = false
         }
     }
 }

@@ -199,24 +199,3 @@ struct PropertyDetailView: View {
     }
 }
 
-struct DetailItem: View {
-    let icon: String
-    let value: String
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(.timbrAccent)
-            Text(value)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.white.opacity(0.1))
-        .cornerRadius(12)
-    }
-}
-
-
