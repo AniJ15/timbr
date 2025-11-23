@@ -38,8 +38,8 @@ struct SwipeCardView: View {
                     .rotation3DEffect(.degrees(isFlipped ? 0 : -180), axis: (x: 0, y: 1, z: 0))
                     .opacity(isFlipped ? 1 : 0)
                 
-                // Swipe indicators (only show when not flipped)
-                if !isFlipped && abs(dragOffset.width) > 20 {
+                // Swipe indicators (show when swiping)
+                if abs(dragOffset.width) > 20 {
                     VStack {
                         Spacer()
                         
@@ -65,8 +65,8 @@ struct SwipeCardView: View {
         .offset(dragOffset)
         .rotationEffect(.degrees(rotationAngle))
         .gesture(
-            // Only allow swiping when not flipped
-            isFlipped ? nil : DragGesture()
+            // Allow swiping even when flipped
+            DragGesture()
                 .updating($isDragging) { _, state, _ in
                     state = true
                 }
@@ -315,44 +315,8 @@ struct SwipeCardView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 20)
                     }
-                    
-                    // Action buttons
-                    HStack(spacing: 16) {
-                        // Dislike button
-                        Button(action: {
-                            onSwipe(.left)
-                        }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 50, height: 50)
-                                .background(Color.red.opacity(0.2))
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.red, lineWidth: 2)
-                                )
-                        }
-                        
-                        // Like button
-                        Button(action: {
-                            onSwipe(.right)
-                        }) {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 50, height: 50)
-                                .background(Color.timbrAccent.opacity(0.2))
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.timbrAccent, lineWidth: 2)
-                                )
-                        }
-                    }
-                    .padding(.top, 20)
-                    .padding(.bottom, 20)
                 }
+                .padding(.bottom, 20)
             }
         }
         .frame(width: geometry.size.width, height: geometry.size.height)
