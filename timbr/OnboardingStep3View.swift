@@ -113,20 +113,15 @@ struct OnboardingStep3View: View {
                         }
                         .padding(.horizontal, 24)
                         
-                        Slider(value: $minPrice, in: minRange...maxRange, step: 10000) {
-                            Text("Min Price")
-                        } minimumValueLabel: {
-                            Text("$0")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.6))
-                        } maximumValueLabel: {
-                            Text("$5M+")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.6))
-                        } onEditingChanged: { editing in
-                            if !editing {
+                        Slider(value: $minPrice, in: minRange...maxRange, step: 10000)
+                            .tint(.timbrAccent)
+                            .labelsHidden()
+                            .disabled(noBudget)
+                            .opacity(noBudget ? 0.5 : 1.0)
+                            .padding(.horizontal, 24)
+                            .onChange(of: minPrice) { newValue in
                                 // Ensure min doesn't exceed max
-                                if minPrice > maxPrice {
+                                if newValue > maxPrice {
                                     minPrice = maxPrice
                                 }
                                 // Only save if "No set budget" is not checked
@@ -134,11 +129,6 @@ struct OnboardingStep3View: View {
                                     manager.preferences.minPrice = Int(minPrice)
                                 }
                             }
-                        }
-                        .tint(.timbrAccent)
-                        .disabled(noBudget)
-                        .opacity(noBudget ? 0.5 : 1.0)
-                        .padding(.horizontal, 24)
                     }
                     
                     // Maximum price slider
@@ -154,20 +144,15 @@ struct OnboardingStep3View: View {
                         }
                         .padding(.horizontal, 24)
                         
-                        Slider(value: $maxPrice, in: minRange...maxRange, step: 10000) {
-                            Text("Max Price")
-                        } minimumValueLabel: {
-                            Text("$0")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.6))
-                        } maximumValueLabel: {
-                            Text("$5M+")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.6))
-                        } onEditingChanged: { editing in
-                            if !editing {
+                        Slider(value: $maxPrice, in: minRange...maxRange, step: 10000)
+                            .tint(.timbrAccent)
+                            .labelsHidden()
+                            .disabled(noBudget)
+                            .opacity(noBudget ? 0.5 : 1.0)
+                            .padding(.horizontal, 24)
+                            .onChange(of: maxPrice) { newValue in
                                 // Ensure max doesn't go below min
-                                if maxPrice < minPrice {
+                                if newValue < minPrice {
                                     maxPrice = minPrice
                                 }
                                 // Only save if "No set budget" is not checked
@@ -175,11 +160,6 @@ struct OnboardingStep3View: View {
                                     manager.preferences.maxPrice = Int(maxPrice)
                                 }
                             }
-                        }
-                        .tint(.timbrAccent)
-                        .disabled(noBudget)
-                        .opacity(noBudget ? 0.5 : 1.0)
-                        .padding(.horizontal, 24)
                     }
                 }
                 .padding(.vertical, 20)
