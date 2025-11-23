@@ -23,35 +23,56 @@ struct SwipeCardView: View {
             ZStack {
                 // Card
                 VStack(spacing: 0) {
-                    // Property Image
-                    ZStack {
-                        // Background color to fill space if image doesn't fill
-                        Color.gray.opacity(0.2)
-                        
-                        AsyncImage(url: URL(string: property.imageUrls.first ?? "")) { phase in
-                            switch phase {
-                            case .empty:
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .overlay(
-                                        ProgressView()
+                    // Property Image - always fills the space, crops as needed
+                    AsyncImage(url: URL(string: property.imageUrls.first ?? "")) { phase in
+                        switch phase {
+                        case .empty:
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.gray.opacity(0.4),
+                                            Color.gray.opacity(0.2)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
                                     )
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            case .failure:
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .overlay(
+                                )
+                                .overlay(
+                                    ProgressView()
+                                        .tint(.white)
+                                )
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geometry.size.width, height: geometry.size.height * 0.75)
+                                .clipped()
+                        case .failure:
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.gray.opacity(0.4),
+                                            Color.gray.opacity(0.2)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .overlay(
+                                    VStack(spacing: 8) {
                                         Image(systemName: "photo")
                                             .font(.system(size: 40))
-                                            .foregroundColor(.gray)
-                                    )
-                            @unknown default:
-                                EmptyView()
-                            }
+                                            .foregroundColor(.white.opacity(0.6))
+                                        Text("Image unavailable")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+                                )
+                        @unknown default:
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
                         }
                     }
                     .frame(height: geometry.size.height * 0.75)
