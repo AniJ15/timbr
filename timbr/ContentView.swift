@@ -12,12 +12,15 @@ struct ContentView: View {
     @StateObject private var authManager = AuthManager()
     @StateObject private var onboardingManager = OnboardingManager()
     @State private var showOnboarding = false
+    @State private var showMainApp = false
     @State private var hasCheckedOnboarding = false
     @State private var hasCheckedProperties = false
     
     var body: some View {
         NavigationStack {
-            if showOnboarding {
+            if showMainApp {
+                MainTabView(onboardingManager: onboardingManager)
+            } else if showOnboarding {
                 OnboardingView()
                     .onAppear {
                         Task {
@@ -28,6 +31,7 @@ struct ContentView: View {
                 WelcomeView(
                     authManager: authManager,
                     showOnboarding: $showOnboarding,
+                    showMainApp: $showMainApp,
                     onboardingManager: onboardingManager
                 )
             }
@@ -62,6 +66,7 @@ struct ContentView: View {
 struct WelcomeView: View {
     @ObservedObject var authManager: AuthManager
     @Binding var showOnboarding: Bool
+    @Binding var showMainApp: Bool
     @ObservedObject var onboardingManager: OnboardingManager
     @State private var isSigningIn = false
     
@@ -175,8 +180,8 @@ struct WelcomeView: View {
                                     showOnboarding = true
                                 } else {
                                     // User has completed onboarding - show main app
-                                    // TODO: Navigate to main swipe interface
-                                    print("✅ User has completed onboarding - ready for main app")
+                                    print("✅ User has completed onboarding - showing main app")
+                                    showMainApp = true
                                 }
                             } else {
                                 print("❌ Sign-in failed")
@@ -257,6 +262,7 @@ struct FeatureRow: View {
     WelcomeView(
         authManager: AuthManager(),
         showOnboarding: .constant(false),
+        showMainApp: .constant(false),
         onboardingManager: OnboardingManager()
     )
     .previewDevice("iPhone 15 Pro")

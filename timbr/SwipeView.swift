@@ -42,17 +42,8 @@ struct SwipeView: View {
             } else {
                 // Main swipe deck
                 VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        Text("Timbr")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    
                     Spacer()
+                        .frame(height: 80)
                     
                     // Card deck
                     ZStack {
@@ -78,9 +69,9 @@ struct SwipeView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 40)
                     
                     Spacer()
+                        .frame(height: 30)
                     
                     // Action buttons
                     HStack(spacing: 40) {
@@ -120,7 +111,7 @@ struct SwipeView: View {
                                 )
                         }
                     }
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 90)
                 }
             }
         }

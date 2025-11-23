@@ -15,7 +15,7 @@ struct OnboardingView: View {
     var body: some View {
         ZStack {
             if showSwipeView {
-                SwipeView(onboardingManager: manager)
+                MainTabView(onboardingManager: manager)
                     .transition(.opacity)
             } else if manager.showSuccess {
                 OnboardingSuccessView(onShowSwipe: {
