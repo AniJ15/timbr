@@ -36,6 +36,7 @@ struct ContentView: View {
                 )
             }
         }
+        .preferredColorScheme(.dark)
         .task {
             // Auto-generate mock properties if they don't exist
             // Wait a bit to ensure Firebase is fully initialized

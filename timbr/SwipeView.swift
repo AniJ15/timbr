@@ -10,10 +10,9 @@ import SwiftUI
 struct SwipeView: View {
     @StateObject private var propertyService = PropertyService()
     @ObservedObject var onboardingManager: OnboardingManager
+    @ObservedObject private var interactionManager = PropertyInteractionManager.shared
     
     @State private var currentIndex = 0
-    @State private var likedProperties: [String] = []
-    @State private var dislikedProperties: [String] = []
     @State private var isTopCardFlipped = false
     @State private var isTopCardSwiping = false
     
@@ -134,8 +133,8 @@ struct SwipeView: View {
         
         // Remove already swiped properties
         let filtered = propertiesToShow.filter { property in
-            !likedProperties.contains(property.id) &&
-            !dislikedProperties.contains(property.id)
+            !interactionManager.likedPropertyIds.contains(property.id) &&
+            !interactionManager.dislikedPropertyIds.contains(property.id)
         }
         
         print("📊 Total loaded: \(allLoadedProperties.count)")
@@ -160,6 +159,8 @@ struct SwipeView: View {
     
     private func loadProperties() async {
         await propertyService.loadProperties()
+        // Share properties with interaction manager
+        PropertyInteractionManager.shared.setProperties(propertyService.properties)
     }
     
     private func handleSwipe(_ direction: SwipeDirection) {
@@ -167,12 +168,10 @@ struct SwipeView: View {
         
         withAnimation {
             if direction == .right {
-                likedProperties.append(property.id)
-                // TODO: Save to Firestore
+                interactionManager.likeProperty(property)
                 print("✅ Liked: \(property.address)")
             } else {
-                dislikedProperties.append(property.id)
-                // TODO: Save to Firestore
+                interactionManager.dislikeProperty(property)
                 print("👎 Disliked: \(property.address)")
             }
             

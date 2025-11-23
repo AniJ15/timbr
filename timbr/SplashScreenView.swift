@@ -14,6 +14,7 @@ struct SplashScreenView: View {
     var body: some View {
         if isActive {
             ContentView()
+                .preferredColorScheme(.dark)
         } else {
             ZStack {
                 Color.timbrDark
