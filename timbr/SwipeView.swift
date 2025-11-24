@@ -117,9 +117,10 @@ struct SwipeView: View {
             .task {
                 // Set onboardingManager reference for API location fetching
                 propertyService.onboardingManager = onboardingManager
+                print("🔍 SwipeView: About to load properties. Current count: \(propertyService.properties.count)")
                 await loadProperties()
-                print("🔍 SwipeView loaded. Properties count: \(propertyService.properties.count)")
-                print("🔍 Filtered properties: \(availableProperties.count)")
+                print("🔍 SwipeView: After loadProperties(). Properties count: \(propertyService.properties.count)")
+                print("🔍 SwipeView: Filtered properties: \(availableProperties.count)")
             }
     }
     

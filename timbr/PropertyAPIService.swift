@@ -122,10 +122,11 @@ class PropertyAPIService {
         throw APIError.invalidURL
     }
     
-    /// Fetch properties by city/state using HasData Zillow Listing API
+    /// Fetch properties by city/state or ZIP code using HasData Zillow Listing API
     func fetchPropertiesByLocation(
-        city: String,
-        state: String,
+        city: String? = nil,
+        state: String? = nil,
+        zipCode: String? = nil,
         minPrice: Int? = nil,
         maxPrice: Int? = nil,
         propertyTypes: [String] = [],
@@ -147,10 +148,23 @@ class PropertyAPIService {
         
         // Build query parameters for Zillow API
         // Start with minimal required parameters to avoid 422 errors
-        var parameters: [String: Any] = [
-            "keyword": "\(city), \(state)", // Required: location or ZIP
-            "type": "forSale" // Required: forSale | forRent | sold
-        ]
+        var parameters: [String: Any] = [:]
+        
+        // Build keyword - can be ZIP code or "City, State"
+        if let zip = zipCode {
+            // Use ZIP code directly
+            parameters["keyword"] = zip
+            print("📍 Using ZIP code as keyword: \(zip)")
+        } else if let city = city, let state = state {
+            // Use "City, State" format
+            parameters["keyword"] = "\(city), \(state)"
+            print("📍 Using city/state as keyword: \(city), \(state)")
+        } else {
+            throw APIError.invalidURL
+        }
+        
+        // Required: type
+        parameters["type"] = "forSale" // Required: forSale | forRent | sold
         
         // Only add optional parameters if they have values
         // Price filters
@@ -228,10 +242,15 @@ class PropertyAPIService {
             // 422 = Unprocessable Entity - try with minimal parameters
             print("⚠️ 422 error - trying with minimal parameters (keyword and type only)")
             
-            let minimalParams: [String: Any] = [
-                "keyword": "\(city), \(state)",
-                "type": "forSale"
-            ]
+            var minimalParams: [String: Any] = [:]
+            if let zip = zipCode {
+                minimalParams["keyword"] = zip
+            } else if let city = city, let state = state {
+                minimalParams["keyword"] = "\(city), \(state)"
+            } else {
+                throw APIError.invalidURL
+            }
+            minimalParams["type"] = "forSale"
             
             do {
                 let response: ZillowListingResponse = try await makeRequest(

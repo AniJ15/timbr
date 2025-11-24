@@ -27,10 +27,8 @@ class PropertyService: ObservableObject {
     private let lastCacheUpdateKey = "lastPropertyCacheUpdate"
     
     init() {
-        // Load properties on init
-        Task {
-            await loadProperties()
-        }
+        // Don't load properties on init - wait for onboardingManager to be set
+        // Properties will be loaded when SwipeView calls loadProperties()
     }
     
     deinit {
@@ -60,33 +58,85 @@ class PropertyService: ObservableObject {
                 if let onboardingManager = onboardingManager {
                     var city: String?
                     var state: String?
+                    var zipCode: String?
                     
-                    // First, try to parse location string (if it's in "City, State" format)
+                    // First, try to parse location string
                     if let location = onboardingManager.preferences.location,
                        location != "Current Location" {
-                        let components = location.components(separatedBy: ",")
-                        if components.count >= 2 {
-                            city = components[0].trimmingCharacters(in: CharacterSet.whitespaces)
-                            state = components[1].trimmingCharacters(in: CharacterSet.whitespaces)
+                        let trimmed = location.trimmingCharacters(in: CharacterSet.whitespaces)
+                        
+                        // Check if it's a ZIP code (5 digits)
+                        if trimmed.count == 5 && trimmed.allSatisfy({ $0.isNumber }) {
+                            zipCode = trimmed
+                            print("📍 Detected ZIP code: \(zipCode!)")
                         } else {
-                            // Try to parse as single value (might be just city or ZIP)
-                            let trimmed = location.trimmingCharacters(in: CharacterSet.whitespaces)
-                            // If it looks like a ZIP (all digits), we can't use it directly
-                            // Otherwise, assume it's a city name
-                            if !trimmed.isEmpty && !trimmed.allSatisfy({ $0.isNumber }) {
+                            // Try to parse as "City, State" format
+                            let components = location.components(separatedBy: ",")
+                            if components.count >= 2 {
+                                city = components[0].trimmingCharacters(in: CharacterSet.whitespaces)
+                                state = components[1].trimmingCharacters(in: CharacterSet.whitespaces)
+                            } else {
+                                // Single value - might be city name
                                 city = trimmed
-                                // Try to infer state from coordinates if available
-                                if let lat = onboardingManager.preferences.latitude,
-                                   let lng = onboardingManager.preferences.longitude {
-                                    // For now, we'll need city and state, so skip this case
-                                    print("⚠️ Location is city name only, coordinates available but need state")
-                                }
+                                print("⚠️ Location is city name only: \(city!)")
                             }
                         }
                     }
                     
-                    // If we have coordinates but no city/state, reverse geocode them
-                    if city == nil || state == nil {
+                    // Get user preferences for filtering (define once for all code paths)
+                    let minPrice = onboardingManager.preferences.minPrice
+                    let maxPrice = onboardingManager.preferences.maxPrice
+                    
+                    // Convert property types to strings (define once for all code paths)
+                    let propertyTypes = onboardingManager.preferences.propertyTypes
+                        .filter { $0 != .browsing }
+                        .map { type in
+                            switch type {
+                            case .house: return "house"
+                            case .apartment: return "apartment"
+                            case .condo: return "condo"
+                            case .townhouse: return "townhouse"
+                            case .commercial: return "commercial"
+                            case .warehouse: return "warehouse"
+                            case .land: return "land"
+                            case .browsing: return ""
+                            }
+                        }
+                        .filter { !$0.isEmpty }
+                    
+                    // If we have a ZIP code, use it directly
+                    if let zip = zipCode {
+                        print("🌐 Fetching from HasData Zillow API using ZIP code: \(zip)")
+                        let apiProperties = try await apiService.fetchPropertiesByLocation(
+                            city: nil,
+                            state: nil,
+                            zipCode: zip,
+                            minPrice: minPrice,
+                            maxPrice: maxPrice,
+                            propertyTypes: propertyTypes,
+                            limit: 50
+                        )
+                        
+                        if !apiProperties.isEmpty {
+                            await saveToFirestore(apiProperties)
+                            self.properties = apiProperties
+                            updateCacheTimestamp()
+                            print("✅ Loaded \(apiProperties.count) properties from HasData Zillow API (ZIP code)")
+                            print("📊 PropertyService.properties.count after ZIP fetch: \(self.properties.count)")
+                            isLoading = false
+                            return // Exit early after successful ZIP code fetch
+                        } else {
+                            self.properties = cachedProperties
+                            print("⚠️ API returned empty for ZIP code, using cached properties")
+                            if cachedProperties.isEmpty {
+                                errorMessage = "No properties found for ZIP code \(zip). Try a different location."
+                            }
+                            isLoading = false
+                            return // Exit early even if API returned empty
+                        }
+                    }
+                    // If we have coordinates but no city/state/ZIP, reverse geocode them
+                    else if (city == nil || state == nil) {
                         if let lat = onboardingManager.preferences.latitude,
                            let lng = onboardingManager.preferences.longitude {
                             print("📍 Have coordinates, reverse geocoding to get city/state: \(lat), \(lng)")
@@ -131,29 +181,8 @@ class PropertyService: ObservableObject {
                         }
                     }
                     
+                    // If we have city and state (or got them from reverse geocoding), use them
                     if let city = city, let state = state {
-                        
-                        // Get user preferences for filtering
-                        let minPrice = onboardingManager.preferences.minPrice
-                        let maxPrice = onboardingManager.preferences.maxPrice
-                        
-                        // Convert property types to strings
-                        let propertyTypes = onboardingManager.preferences.propertyTypes
-                            .filter { $0 != .browsing }
-                            .map { type in
-                                switch type {
-                                case .house: return "house"
-                                case .apartment: return "apartment"
-                                case .condo: return "condo"
-                                case .townhouse: return "townhouse"
-                                case .commercial: return "commercial"
-                                case .warehouse: return "warehouse"
-                                case .land: return "land"
-                                case .browsing: return ""
-                                }
-                            }
-                            .filter { !$0.isEmpty }
-                        
                         print("🌐 Fetching from HasData Zillow API: \(city), \(state)")
                         let apiProperties = try await apiService.fetchPropertiesByLocation(
                             city: city,
