@@ -14,7 +14,6 @@ struct ContentView: View {
     @State private var showOnboarding = false
     @State private var showMainApp = false
     @State private var hasCheckedOnboarding = false
-    @State private var hasCheckedProperties = false
     
     var body: some View {
         NavigationStack {
@@ -37,30 +36,14 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .task {
-            // Auto-generate mock properties if they don't exist
-            // Wait a bit to ensure Firebase is fully initialized
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
-            
-            if !hasCheckedProperties {
-                await checkAndGenerateMockData()
-                hasCheckedProperties = true
+        .onChange(of: authManager.isSignedIn) { oldValue, newValue in
+            if !newValue {
+                // User signed out, return to welcome screen
+                showMainApp = false
+                showOnboarding = false
             }
         }
-    }
-    
-    private func checkAndGenerateMockData() async {
-        let helper = MockDataHelper.shared
-        
-        // Check if properties already exist
-        let propertiesExist = await helper.checkIfPropertiesExist()
-        
-        if !propertiesExist {
-            print("📦 No properties found. Generating mock data...")
-            await helper.generateMockProperties(count: 50)
-        } else {
-            print("✅ Properties already exist in Firestore")
-        }
+        // Mock data generation removed - only using HasData Zillow API now
     }
 }
 
@@ -69,7 +52,9 @@ struct WelcomeView: View {
     @Binding var showOnboarding: Bool
     @Binding var showMainApp: Bool
     @ObservedObject var onboardingManager: OnboardingManager
-    @State private var isSigningIn = false
+    @State private var isSigningUp = false
+    @State private var showLoginSheet = false
+    @State private var loginErrorMessage: String?
     
     private let features = [
         "Personalized swipe deck",
@@ -156,26 +141,25 @@ struct WelcomeView: View {
                 
                 Spacer()
                 
-                // Google button
+                // Sign up and Log in buttons
                 VStack(spacing: 16) {
+                    // Sign up button
                     Button(action: {
                         Task {
-                            isSigningIn = true
-                            await authManager.signInWithGoogle()
-                            isSigningIn = false
+                            isSigningUp = true
+                            await authManager.signInWithGoogle(clearAccountsFirst: false)
+                            isSigningUp = false
                             
-                            // After successful sign-in, navigate to onboarding
+                            // After successful sign-up, navigate to onboarding
                             if authManager.isSignedIn {
-                                print("🔐 User signed in, checking onboarding status...")
+                                print("🔐 User signed up, checking onboarding status...")
                                 
                                 // Try to load preferences, but navigate to onboarding regardless
-                                // (Firestore might not be enabled yet, but we still want onboarding)
                                 await onboardingManager.loadPreferences()
                                 
                                 print("📋 Onboarding status - hasCompletedOnboarding: \(onboardingManager.preferences.hasCompletedOnboarding)")
                                 
                                 // Always show onboarding if not completed
-                                // If Firestore isn't enabled, hasCompletedOnboarding will be false by default
                                 if !onboardingManager.preferences.hasCompletedOnboarding {
                                     print("➡️ Navigating to onboarding...")
                                     showOnboarding = true
@@ -185,19 +169,19 @@ struct WelcomeView: View {
                                     showMainApp = true
                                 }
                             } else {
-                                print("❌ Sign-in failed")
+                                print("❌ Sign-up failed")
                             }
                         }
                     }) {
                         HStack(spacing: 10) {
-                            if isSigningIn {
+                            if isSigningUp {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .black))
                             } else {
                                 Image(systemName: "g.circle.fill")
                                     .font(.system(size: 20, weight: .medium))
                             }
-                            Text(isSigningIn ? "Signing in..." : "Continue with Google")
+                            Text(isSigningUp ? "Signing up..." : "Sign up with Google")
                                 .font(.system(size: 17, weight: .semibold))
                         }
                         .foregroundColor(.black)
@@ -206,7 +190,25 @@ struct WelcomeView: View {
                         .background(Color.white)
                         .cornerRadius(30)
                     }
-                    .disabled(isSigningIn)
+                    .disabled(isSigningUp)
+                    .padding(.horizontal, 24)
+                    
+                    // Log in button
+                    Button(action: {
+                        showLoginSheet = true
+                    }) {
+                        Text("Log in")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(30)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 30)
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                    }
                     .padding(.horizontal, 24)
                     
                     if let errorMessage = authManager.errorMessage {
@@ -225,6 +227,14 @@ struct WelcomeView: View {
                         .padding(.horizontal, 40)
                         .padding(.bottom, 32)
                 }
+            }
+            .sheet(isPresented: $showLoginSheet) {
+                LoginSheetView(
+                    authManager: authManager,
+                    onboardingManager: onboardingManager,
+                    showMainApp: $showMainApp,
+                    loginErrorMessage: $loginErrorMessage
+                )
             }
         }
     }
@@ -259,6 +269,119 @@ struct FeatureRow: View {
 }
 
 
+// MARK: - Login Sheet View
+struct LoginSheetView: View {
+    @ObservedObject var authManager: AuthManager
+    @ObservedObject var onboardingManager: OnboardingManager
+    @Binding var showMainApp: Bool
+    @Binding var loginErrorMessage: String?
+    @Environment(\.dismiss) var dismiss
+    @State private var isLoggingIn = false
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.timbrDark
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 32) {
+                    Spacer()
+                    
+                    VStack(spacing: 16) {
+                        Image("TimbrLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                        
+                        Text("Log in to timbr")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        Text("Sign in with your Google account to access your saved preferences and matches.")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(spacing: 20) {
+                        Button(action: {
+                            Task {
+                                isLoggingIn = true
+                                loginErrorMessage = nil
+                                
+                                await authManager.signInWithGoogle(clearAccountsFirst: false)
+                                
+                                if authManager.isSignedIn {
+                                    // Check if user has an account
+                                    let hasAccount = await onboardingManager.checkIfUserHasAccount()
+                                    
+                                    if hasAccount {
+                                        // Load preferences and navigate to main app
+                                        await onboardingManager.loadPreferences()
+                                        dismiss()
+                                        showMainApp = true
+                                    } else {
+                                        // User doesn't have an account
+                                        loginErrorMessage = "No account found. Please sign up first."
+                                        await authManager.signOut()
+                                    }
+                                } else {
+                                    // Sign-in failed
+                                    loginErrorMessage = authManager.errorMessage ?? "Failed to sign in. Please try again."
+                                }
+                                
+                                isLoggingIn = false
+                            }
+                        }) {
+                            HStack(spacing: 10) {
+                                if isLoggingIn {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                } else {
+                                    Image(systemName: "g.circle.fill")
+                                        .font(.system(size: 20, weight: .medium))
+                                }
+                                Text(isLoggingIn ? "Logging in..." : "Continue with Google")
+                                    .font(.system(size: 17, weight: .semibold))
+                            }
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.white)
+                            .cornerRadius(30)
+                        }
+                        .disabled(isLoggingIn)
+                        .padding(.horizontal, 24)
+                        
+                        if let errorMessage = loginErrorMessage {
+                            Text(errorMessage)
+                                .font(.system(size: 14))
+                                .foregroundColor(.red.opacity(0.9))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+                    }
+                    
+                    Spacer()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
 #Preview {
     WelcomeView(
         authManager: AuthManager(),
@@ -266,5 +389,4 @@ struct FeatureRow: View {
         showMainApp: .constant(false),
         onboardingManager: OnboardingManager()
     )
-    .previewDevice("iPhone 15 Pro")
 }

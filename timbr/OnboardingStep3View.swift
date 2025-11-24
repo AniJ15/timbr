@@ -138,7 +138,7 @@ struct OnboardingStep3View: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.white.opacity(0.8))
                             Spacer()
-                            Text(formatPrice(maxPrice))
+                            Text(noBudget && maxPrice >= maxRange ? "5M+" : formatPrice(maxPrice))
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -193,9 +193,15 @@ struct OnboardingStep3View: View {
                 noBudget = false
             } else {
                 noBudget = true
+                // Set to 0 and 5M+ when no budget
+                minPrice = minRange
+                maxPrice = maxRange
             }
             if let max = manager.preferences.maxPrice {
                 maxPrice = Double(max)
+            } else if noBudget {
+                // Ensure max is at 5M when no budget
+                maxPrice = maxRange
             }
         }
     }

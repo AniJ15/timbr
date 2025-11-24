@@ -23,15 +23,6 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            // Explore Tab
-            ExploreView()
-                .tabItem {
-                    Image(systemName: "map.fill")
-                        .renderingMode(.template)
-                    Text("Explore")
-                }
-                .tag(1)
-            
             // Saved/Collections Tab
             SavedView()
                 .tabItem {
@@ -39,16 +30,16 @@ struct MainTabView: View {
                         .renderingMode(.template)
                     Text("Saved")
                 }
-                .tag(2)
+                .tag(1)
             
             // Profile/Settings Tab
-            ProfileView()
+            ProfileView(onboardingManager: onboardingManager)
                 .tabItem {
                     Image(systemName: "person.fill")
                         .renderingMode(.template)
                     Text("Profile")
                 }
-                .tag(3)
+                .tag(2)
         }
         .tint(.timbrAccent)
         .background(Color.timbrDark)

@@ -114,11 +114,13 @@ struct SwipeView: View {
                 }
             }
         }
-        .task {
-            await loadProperties()
-            print("🔍 SwipeView loaded. Properties count: \(propertyService.properties.count)")
-            print("🔍 Filtered properties: \(availableProperties.count)")
-        }
+            .task {
+                // Set onboardingManager reference for API location fetching
+                propertyService.onboardingManager = onboardingManager
+                await loadProperties()
+                print("🔍 SwipeView loaded. Properties count: \(propertyService.properties.count)")
+                print("🔍 Filtered properties: \(availableProperties.count)")
+            }
     }
     
     private var availableProperties: [Property] {

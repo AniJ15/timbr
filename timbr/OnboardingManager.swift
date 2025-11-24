@@ -93,6 +93,20 @@ class OnboardingManager: ObservableObject {
             isLoading = false
         }
     }
+    
+    func checkIfUserHasAccount() async -> Bool {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            return false
+        }
+        
+        do {
+            let document = try await db.collection("users").document(userId).getDocument()
+            return document.exists
+        } catch {
+            print("❌ Error checking if user has account: \(error.localizedDescription)")
+            return false
+        }
+    }
 }
 
 // MARK: - Codable Extensions

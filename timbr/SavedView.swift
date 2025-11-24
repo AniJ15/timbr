@@ -225,7 +225,7 @@ struct SavedPropertyCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: "bathtub.fill")
                             .font(.system(size: 12))
-                        Text("\(property.bathrooms)")
+                        Text(formatBathrooms(property.bathrooms))
                             .font(.system(size: 12))
                     }
                     .foregroundColor(.white.opacity(0.6))
@@ -256,5 +256,15 @@ struct SavedPropertyCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isLiked ? Color.timbrAccent.opacity(0.3) : Color.red.opacity(0.2), lineWidth: 1)
         )
+    }
+    
+    private func formatBathrooms(_ bathrooms: Double) -> String {
+        // Format to one decimal place and remove trailing zeros
+        let formatted = String(format: "%.1f", bathrooms)
+        // Remove trailing zero and decimal point if not needed
+        if formatted.hasSuffix(".0") {
+            return String(format: "%.0f", bathrooms)
+        }
+        return formatted
     }
 }

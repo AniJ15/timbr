@@ -26,7 +26,14 @@ class AuthManager: ObservableObject {
         }
     }
     
-    func signInWithGoogle() async {
+    func signInWithGoogle(clearAccountsFirst: Bool = false) async {
+        // For demo purposes: clear all accounts before signing in
+        if clearAccountsFirst {
+            clearAllAccounts()
+            // Wait a moment for accounts to clear
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        }
+        
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             errorMessage = "Firebase configuration error"
             return
@@ -89,17 +96,20 @@ class AuthManager: ObservableObject {
         GIDSignIn.sharedInstance.signOut()
         
         // Disconnect (removes account from device)
+        // This will clear the saved Google account from the device
         GIDSignIn.sharedInstance.disconnect { error in
             if let error = error {
                 print("Error disconnecting: \(error)")
             } else {
-                print("✅ All Google accounts cleared")
+                print("✅ Google account disconnected")
             }
         }
         
         self.isSignedIn = false
         self.user = nil
         self.errorMessage = nil
+        
+        print("✅ All Google accounts cleared")
     }
 }
 
