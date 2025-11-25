@@ -121,6 +121,8 @@ struct WelcomeView: View {
                     Text("Swipe into homes, investments, and inspirations tailored to how you live and what you're searching for.")
                         .font(.system(size: 15, weight: .regular))
                         .foregroundColor(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
                     
                     Divider().background(Color.white.opacity(0.15))
                     

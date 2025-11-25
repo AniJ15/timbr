@@ -15,12 +15,13 @@ struct SwipeView: View {
     @State private var currentIndex = 0
     @State private var isTopCardFlipped = false
     @State private var isTopCardSwiping = false
+    @State private var awaitingReload = false
     
     var body: some View {
         ZStack {
             Color.timbrDark.ignoresSafeArea()
             
-            if propertyService.isLoading {
+            if propertyService.isLoading || awaitingReload {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
             } else if availableProperties.isEmpty {
@@ -121,6 +122,24 @@ struct SwipeView: View {
                 await loadProperties()
                 print("🔍 SwipeView: After loadProperties(). Properties count: \(propertyService.properties.count)")
                 print("🔍 SwipeView: Filtered properties: \(availableProperties.count)")
+                await MainActor.run {
+                    awaitingReload = false
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PreferencesUpdated"))) { _ in
+                // Reload properties when preferences are updated
+                print("🔄 SwipeView: Preferences updated, reloading properties...")
+                awaitingReload = true
+                Task {
+                    propertyService.onboardingManager = onboardingManager
+                    await loadProperties()
+                    // Reset current index to show new properties from the start
+                    currentIndex = 0
+                    print("✅ SwipeView: Properties reloaded after preferences update")
+                    await MainActor.run {
+                        awaitingReload = false
+                    }
+                }
             }
     }
     

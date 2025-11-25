@@ -640,7 +640,19 @@ struct EditPreferencesView: View {
         onboardingManager.preferences.location = location.isEmpty ? nil : location
         
         Task {
+            // Save preferences to Firebase
             await onboardingManager.savePreferences()
+            
+            // Clear all existing properties from Firestore
+            print("🔄 Preferences updated - clearing old properties...")
+            let propertyService = PropertyService()
+            propertyService.onboardingManager = onboardingManager
+            await propertyService.clearAllProperties()
+            print("✅ Cleared all properties from Firestore")
+            
+            // Post notification to trigger reload in SwipeView
+            NotificationCenter.default.post(name: NSNotification.Name("PreferencesUpdated"), object: nil)
+            
             isSaving = false
             dismiss()
         }

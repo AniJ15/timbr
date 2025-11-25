@@ -114,7 +114,7 @@ class PropertyService: ObservableObject {
                             minPrice: minPrice,
                             maxPrice: maxPrice,
                             propertyTypes: propertyTypes,
-                            limit: 50
+                            limit: 100
                         )
                         
                         if !apiProperties.isEmpty {
@@ -190,7 +190,7 @@ class PropertyService: ObservableObject {
                             minPrice: minPrice,
                             maxPrice: maxPrice,
                             propertyTypes: propertyTypes,
-                            limit: 50
+                            limit: 100
                         )
                         
                         if !apiProperties.isEmpty {
@@ -423,6 +423,47 @@ class PropertyService: ObservableObject {
     
     func getPropertiesForUser(_ preferences: UserPreferences) -> [Property] {
         return filterProperties(by: preferences)
+    }
+    
+    /// Clear all properties from Firestore and reset cache
+    /// This is called when user updates their preferences
+    func clearAllProperties() async {
+        print("🗑️ Clearing all properties from Firestore...")
+        
+        do {
+            // Get all property documents
+            let snapshot = try await db.collection("properties").getDocuments()
+            let documents = snapshot.documents
+            let totalCount = documents.count
+            
+            // Firestore batch limit is 500 operations, so we need to batch deletions
+            let batchSize = 500
+            var deletedCount = 0
+            
+            for i in stride(from: 0, to: documents.count, by: batchSize) {
+                let endIndex = min(i + batchSize, documents.count)
+                let batch = db.batch()
+                
+                for j in i..<endIndex {
+                    batch.deleteDocument(documents[j].reference)
+                }
+                
+                try await batch.commit()
+                deletedCount += (endIndex - i)
+                print("🗑️ Deleted batch: \(deletedCount)/\(totalCount) properties")
+            }
+            
+            print("✅ Cleared \(deletedCount) properties from Firestore")
+            
+            // Clear local properties
+            self.properties = []
+            
+            // Clear cache timestamp to force fresh API fetch
+            UserDefaults.standard.removeObject(forKey: lastCacheUpdateKey)
+            print("✅ Cleared cache timestamp")
+        } catch {
+            print("❌ Error clearing properties: \(error.localizedDescription)")
+        }
     }
 }
 

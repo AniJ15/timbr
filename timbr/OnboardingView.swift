@@ -18,11 +18,14 @@ struct OnboardingView: View {
                 MainTabView(onboardingManager: manager)
                     .transition(.opacity)
             } else if manager.showSuccess {
-                OnboardingSuccessView(onShowSwipe: {
-                    withAnimation {
-                        showSwipeView = true
-                    }
-                })
+                OnboardingSuccessView(
+                    onShowSwipe: {
+                        withAnimation {
+                            showSwipeView = true
+                        }
+                    },
+                    onboardingManager: manager
+                )
             } else {
                 Color.timbrDark.ignoresSafeArea()
                 

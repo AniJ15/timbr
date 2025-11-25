@@ -113,7 +113,7 @@ class PropertyAPIService {
         propertyTypes: [String] = [],
         minBeds: Int? = nil,
         minBaths: Double? = nil,
-        limit: Int = 50
+        limit: Int = 100
     ) async throws -> [Property] {
         // Zillow API requires city/state, not coordinates
         // For now, we'll need to use reverse geocoding or get city/state from user preferences
@@ -132,7 +132,7 @@ class PropertyAPIService {
         propertyTypes: [String] = [],
         minBeds: Int? = nil,
         minBaths: Double? = nil,
-        limit: Int = 50
+        limit: Int = 100
     ) async throws -> [Property] {
         // Check usage limit
         guard canMakeRequest() else {
